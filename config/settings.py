@@ -14,9 +14,19 @@ PEST_API_SERVICE_KEY = os.getenv("PEST_API_SERVICE_KEY")
 if not PEST_API_SERVICE_KEY:
     raise ValueError("PEST_API_SERVICE_KEY environment variable not set. Please create a .env file or set the environment variable.")
 
+DATA_GO_KR_SERVICE_KEY = os.getenv("DATA_GO_KR_SERVICE_KEY")
+if not DATA_GO_KR_SERVICE_KEY:
+    raise ValueError("DATA_GO_KR_SERVICE_KEY environment variable not set. Please create a .env file or set the environment variable.")
+
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5:3b")
-REQUEST_TIMEOUT = int(os.getenv("REQUEST_TIMEOUT", "20")) # seconds
+REQUEST_TIMEOUT = int(os.getenv("REQUEST_TIMEOUT", "90")) # seconds
+
+# --- Location & Period Configuration ---
+WEATHER_DATA_DAYS = int(os.getenv("WEATHER_DATA_DAYS", "30"))
+TARGET_STATION_CODE = os.getenv("TARGET_STATION_CODE", "")
+TARGET_STATION_NAME = os.getenv("TARGET_STATION_NAME", "")
+TARGET_FARM_ID = os.getenv("TARGET_FARM_ID", "M2103_001_001_01")
 
 # --- Base Directories ---
 BASE_DIR = Path(__file__).resolve().parent.parent

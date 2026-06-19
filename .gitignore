@@ -12,3 +12,5 @@ venv/*
 *.md
 *.log
 .DS_Store
+output/*
+.vscode/*
