@@ -6,9 +6,10 @@ models/*.pkl
 data/raw/*
 data/processed/*
 data/cache/*
-output/*.html
+output/*
 .venv/*
 venv/*
 *.md
 *.log
 .DS_Store
+.vscode/*
