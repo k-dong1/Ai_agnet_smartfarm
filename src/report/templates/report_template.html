@@ -617,9 +617,19 @@
                 <!-- MLP Feature Importance (XAI) -->
                 <div class="card" style="text-align: center;">
                     <div class="card-title">
-                        <span>📊 인공신경망 피처 기여도 (XAI)</span>
+                        <span>📊 전역 모델 피처 기여도 (Global XAI)</span>
                     </div>
                     <img src="{{ importance_chart_path }}" alt="Feature Importance Chart" style="max-width: 100%; border-radius: 12px; margin-top: 0.5rem; filter: drop-shadow(0 4px 12px rgba(0,0,0,0.35));">
+                </div>
+                {% endif %}
+
+                {% if local_importance_chart_path %}
+                <!-- Real-time Decision Attribution (Local XAI) -->
+                <div class="card" style="text-align: center;">
+                    <div class="card-title">
+                        <span>🔍 실시간 예측 의사결정 기여도 (Local XAI)</span>
+                    </div>
+                    <img src="{{ local_importance_chart_path }}" alt="Local Feature Importance Chart" style="max-width: 100%; border-radius: 12px; margin-top: 0.5rem; filter: drop-shadow(0 4px 12px rgba(0,0,0,0.35));">
                 </div>
                 {% endif %}
 

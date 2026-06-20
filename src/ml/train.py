@@ -36,42 +36,102 @@ def train_model(data_path: str, epochs: int = 50, batch_size: int = 16, lr: floa
     num_samples = len(df)
     print(f"Loaded {num_samples} samples for training.")
 
-    # Robust handling for small datasets
-    if num_samples < 5:
-        print("Warning: The dataset is extremely small (< 5). Training might not be accurate.")
-        X_train, X_test, y_train, y_test = X, X, y, y
-    elif num_samples < 20:
-        print("Warning: Dataset is small (< 20). Splitting with a small test size.")
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.1, random_state=42, stratify=None)
+    # Compute class weights for imbalanced dataset
+    class_counts = np.bincount(y, minlength=4)
+    class_weights = np.zeros(4)
+    for c in range(4):
+        count = class_counts[c]
+        if count > 0:
+            class_weights[c] = 1.0 / count
+        else:
+            class_weights[c] = 0.0
+    # Normalize weights so they average to 1.0
+    if np.sum(class_weights) > 0:
+        class_weights = class_weights / np.sum(class_weights) * 4.0
     else:
-        # Standard split
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=None)
-
-    # Scale features
-    scaler = StandardScaler()
-    X_train_scaled = scaler.fit_transform(X_train)
-    X_test_scaled = scaler.transform(X_test)
-
-    # Create PyTorch datasets and dataloaders
-    train_dataset = SmartFarmDataset(X_train_scaled, y_train)
-    test_dataset = SmartFarmDataset(X_test_scaled, y_test)
-
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-
-    # Initialize model
-    input_dim = len(feature_cols)
-    model = SmartFarmMLP(input_dim=input_dim, output_dim=4)
+        class_weights = np.ones(4)
     
-    # Loss and Optimizer
-    criterion = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(model.parameters(), lr=lr)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    class_weights_tensor = torch.tensor(class_weights, dtype=torch.float32).to(device)
+    print(f"Applying Class Weights for Loss calculation: {class_weights}")
 
-    # Training loop
+    # Robust handling for small datasets: Only run 5-Fold CV if we have enough samples
+    fold_accuracies = []
+    if num_samples >= 10:
+        from sklearn.model_selection import KFold
+        kf = KFold(n_splits=5, shuffle=True, random_state=42)
+        print("\n--- Running 5-Fold Cross Validation for accurate performance evaluation ---")
+        fold = 1
+        for train_idx, val_idx in kf.split(X):
+            X_tr, X_val = X[train_idx], X[val_idx]
+            y_tr, y_val = y[train_idx], y[val_idx]
+            
+            # Scale per fold
+            fold_scaler = StandardScaler()
+            X_tr_scaled = fold_scaler.fit_transform(X_tr)
+            X_val_scaled = fold_scaler.transform(X_val)
+            
+            # Create fold datasets & loaders
+            fold_train_ds = SmartFarmDataset(X_tr_scaled, y_tr)
+            fold_train_loader = DataLoader(fold_train_ds, batch_size=batch_size, shuffle=True)
+            
+            # Init fold model
+            fold_model = SmartFarmMLP(input_dim=len(feature_cols), output_dim=4).to(device)
+            fold_criterion = nn.CrossEntropyLoss(weight=class_weights_tensor)
+            fold_optimizer = optim.Adam(fold_model.parameters(), lr=lr)
+            
+            # Train fold model (Dropout active)
+            fold_model.train()
+            for epoch in range(1, epochs + 1):
+                for batch_X, batch_y in fold_train_loader:
+                    batch_X, batch_y = batch_X.to(device), batch_y.to(device)
+                    fold_optimizer.zero_grad()
+                    outputs = fold_model(batch_X)
+                    loss = fold_criterion(outputs, batch_y)
+                    loss.backward()
+                    fold_optimizer.step()
+            
+            # Evaluate fold model (Dropout inactive)
+            fold_model.eval()
+            with torch.no_grad():
+                val_inputs = torch.tensor(X_val_scaled, dtype=torch.float32).to(device)
+                val_targets = torch.tensor(y_val, dtype=torch.long).to(device)
+                
+                if len(val_targets) > 0:
+                    val_outputs = fold_model(val_inputs)
+                    _, predicted = torch.max(val_outputs, 1)
+                    correct = (predicted == val_targets).sum().item()
+                    acc = correct / len(val_targets)
+                    fold_accuracies.append(acc)
+                    print(f"  Fold {fold}/5 - Validation Accuracy: {acc * 100:.2f}%")
+                fold += 1
+        
+        accuracy = float(np.mean(fold_accuracies)) if fold_accuracies else 0.0
+        print(f"-> 5-Fold CV Mean Accuracy: {accuracy * 100:.2f}%")
+    else:
+        print("Warning: Dataset is too small to perform K-Fold CV. Evaluation accuracy set to default.")
+        accuracy = 1.0
+
+    # Train the final production model on ALL data
+    print("\n--- Training final production model on all data ---")
+    scaler = StandardScaler()
+    X_scaled = scaler.fit_transform(X)
+    
+    final_dataset = SmartFarmDataset(X_scaled, y)
+    final_loader = DataLoader(final_dataset, batch_size=batch_size, shuffle=True)
+    
+    # Initialize final model
+    input_dim = len(feature_cols)
+    model = SmartFarmMLP(input_dim=input_dim, output_dim=4).to(device)
+    criterion = nn.CrossEntropyLoss(weight=class_weights_tensor)
+    optimizer = optim.Adam(model.parameters(), lr=lr)
+    
     model.train()
     history = []
     for epoch in range(1, epochs + 1):
         epoch_loss = 0.0
-        for batch_X, batch_y in train_loader:
+        for batch_X, batch_y in final_loader:
+            batch_X, batch_y = batch_X.to(device), batch_y.to(device)
             optimizer.zero_grad()
             outputs = model(batch_X)
             loss = criterion(outputs, batch_y)
@@ -79,25 +139,10 @@ def train_model(data_path: str, epochs: int = 50, batch_size: int = 16, lr: floa
             optimizer.step()
             epoch_loss += loss.item() * len(batch_X)
         
-        epoch_loss /= len(train_dataset)
+        epoch_loss /= len(final_dataset)
         history.append(epoch_loss)
         if epoch % 10 == 0 or epoch == 1:
             print(f"Epoch [{epoch}/{epochs}] - Loss: {epoch_loss:.4f}")
-
-    # Evaluate on test set
-    model.eval()
-    with torch.no_grad():
-        test_inputs = torch.tensor(X_test_scaled, dtype=torch.float32)
-        test_targets = torch.tensor(y_test, dtype=torch.long)
-        
-        if len(test_targets) > 0:
-            test_outputs = model(test_inputs)
-            _, predicted = torch.max(test_outputs, 1)
-            correct = (predicted == test_targets).sum().item()
-            accuracy = correct / len(test_targets)
-        else:
-            accuracy = 0.0
-        print(f"Test Accuracy: {accuracy * 100:.2f}%")
 
     # Ensure output directories exist
     os.makedirs(MODELS_DIR, exist_ok=True)

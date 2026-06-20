@@ -6,7 +6,8 @@ from config.settings import BASE_DIR, OUTPUT_DIR
 from src.report.chart_generator import (
     generate_loss_chart, 
     generate_sensor_trend_chart,
-    generate_importance_chart
+    generate_importance_chart,
+    generate_local_importance_chart
 )
 
 def generate_report(agent_result: dict, metrics: dict, df: pd.DataFrame, output_filename: str = "report.html",
@@ -34,6 +35,9 @@ def generate_report(agent_result: dict, metrics: dict, df: pd.DataFrame, output_
     loss_chart_rel_path = ""
     trend_chart_rel_path = ""
     importance_chart_rel_path = ""
+    local_importance_chart_rel_path = ""
+    
+    local_attribution = agent_result.get("local_attribution", {})
     
     try:
         if loss_history:
@@ -55,6 +59,13 @@ def generate_report(agent_result: dict, metrics: dict, df: pd.DataFrame, output_
             importance_chart_rel_path = "charts/feature_importance.png"
     except Exception as e:
         print(f"Warning: Failed to generate feature importance chart: {e}")
+
+    try:
+        if local_attribution:
+            generate_local_importance_chart(local_attribution, charts_dir)
+            local_importance_chart_rel_path = "charts/local_feature_importance.png"
+    except Exception as e:
+        print(f"Warning: Failed to generate local feature importance chart: {e}")
         
     # 2. Render HTML Template
     templates_dir = os.path.join(BASE_DIR, "src", "report", "templates")
@@ -74,6 +85,7 @@ def generate_report(agent_result: dict, metrics: dict, df: pd.DataFrame, output_
         "loss_chart_path": loss_chart_rel_path,
         "trend_chart_path": trend_chart_rel_path,
         "importance_chart_path": importance_chart_rel_path,
+        "local_importance_chart_path": local_importance_chart_rel_path,
         "generated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "station_name": station_name,
         "gray_mold_detail": gray_mold_detail or {},

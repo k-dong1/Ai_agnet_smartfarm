@@ -151,3 +151,66 @@ def generate_importance_chart(importance_dict: dict, output_dir: str) -> str:
     plt.close()
     
     return chart_path
+
+def generate_local_importance_chart(local_importance_dict: dict, output_dir: str) -> str:
+    """
+    Plots a premium horizontal bar chart showing real-time local gradient attributions (Local XAI)
+    for the specific single observation.
+    """
+    os.makedirs(output_dir, exist_ok=True)
+    
+    # Map English keys to descriptive labels without Korean glyphs to prevent rendering bugs
+    key_map = {
+        'temperature': 'Temperature',
+        'humidity': 'Humidity',
+        'light': 'Light (Lux)',
+        'co2': 'CO2 (ppm)',
+        'humidity_duration': 'Humidity Duration',
+        'temp_change': 'Temperature Change',
+        'humidity_change': 'Humidity Change'
+    }
+    
+    mapped_dict = {key_map.get(k, k): v for k, v in local_importance_dict.items()}
+    
+    # Sort items by importance value
+    sorted_items = sorted(mapped_dict.items(), key=lambda x: x[1], reverse=False)
+    features = [item[0] for item in sorted_items]
+    values = [item[1] for item in sorted_items]
+    
+    plt.rcParams['text.color'] = '#f8fafc'
+    plt.rcParams['axes.labelcolor'] = '#94a3b8'
+    plt.rcParams['xtick.color'] = '#94a3b8'
+    plt.rcParams['ytick.color'] = '#94a3b8'
+    
+    fig, ax = plt.subplots(figsize=(6, 3.5), facecolor='none')
+    ax.set_facecolor('none')
+    
+    # Plot horizontal bars
+    bars = ax.barh(features, values, color='#06b6d4', height=0.6, edgecolor='none', alpha=0.9)
+    
+    # Add values text next to the bars
+    for bar in bars:
+        width = bar.get_width()
+        ax.text(width + 0.5, bar.get_y() + bar.get_height()/2, f"{width:.1f}%", 
+                va='center', ha='left', fontsize=8, color='#f8fafc', fontweight='semibold')
+                
+    ax.set_title("Real-time Decision Attribution (Local XAI)", fontsize=11, fontweight='bold', pad=12)
+    ax.set_xlabel("Attribution Score (%)", fontsize=9)
+    
+    # Style axes
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.spines['left'].set_color('#334155')
+    ax.spines['bottom'].set_color('#334155')
+    ax.grid(True, axis='x', color='#334155', linestyle='--', alpha=0.4)
+    
+    # Set limit to allow text visibility
+    if values:
+        ax.set_xlim(0, max(values) * 1.15)
+        
+    plt.tight_layout()
+    chart_path = os.path.join(output_dir, "local_feature_importance.png")
+    plt.savefig(chart_path, dpi=150, bbox_inches='tight', transparent=True)
+    plt.close()
+    
+    return chart_path

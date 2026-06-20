@@ -35,7 +35,7 @@ class SmartFarmAgent:
         # 1. MLP Predict
         self.log("[STEP 2] MLP 분류 모델을 활용하여 위험 예측을 가동합니다.")
         try:
-            pred_label, probabilities = predict_risk(sensor_data)
+            pred_label, probabilities, local_attribution = predict_risk(sensor_data)
             risk_levels = ["정상", "주의", "경고", "심각"]
             risk_level = risk_levels[pred_label]
             self.log(f"MLP 모델 예측 완료 -> 위험 등급: {risk_level} (라벨: {pred_label})")
@@ -48,6 +48,10 @@ class SmartFarmAgent:
             risk_levels = ["정상", "주의", "경고", "심각"]
             risk_level = risk_levels[pred_label]
             probabilities = {lvl: (1.0 if lvl == risk_level else 0.0) for lvl in risk_levels}
+            local_attribution = {
+                'temperature': 14.28, 'humidity': 14.28, 'light': 14.28, 'co2': 14.28, 
+                'humidity_duration': 14.28, 'temp_change': 14.28, 'humidity_change': 14.28
+            }
 
         # 2. Risk Reason Analysis
         self.log("[STEP 3] 규칙 분석기를 활용하여 세부 위험 요인 및 원인을 식별합니다.")
@@ -82,6 +86,7 @@ class SmartFarmAgent:
             "risk_level": risk_level,
             "risk_label": pred_label,
             "risk_probability": probabilities,
+            "local_attribution": local_attribution,
             "reasons": reasons,
             "actions": actions,
             "llm_summary": llm_summary,

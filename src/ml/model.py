@@ -7,8 +7,10 @@ class SmartFarmMLP(nn.Module):
         self.network = nn.Sequential(
             nn.Linear(input_dim, hidden1),
             nn.ReLU(),
+            nn.Dropout(p=0.2),
             nn.Linear(hidden1, hidden2),
             nn.ReLU(),
+            nn.Dropout(p=0.2),
             nn.Linear(hidden2, output_dim)
         )
 
