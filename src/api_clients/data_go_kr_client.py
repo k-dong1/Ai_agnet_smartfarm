@@ -34,17 +34,18 @@ class BaseAPIClient:
         Makes an HTTP request to the API endpoint.
         Automatically handles service key injection and raw response saving.
         """
-        url = f"{self.base_url}/{endpoint}"
-        
-        # Add service key if provided for the client
-        if self.service_key:
-            params_with_key = params.copy()
-            # Note: Public Data APIs can have varying service key parameter names (serviceKey, ServiceKey, etc.)
-            # This needs to be handled in the inheriting client classes or specified by the API itself.
-            # For data.go.kr, 'serviceKey' is common, but will be overridden if a specific client sets it.
-            params_with_key.setdefault("serviceKey", self.service_key) 
+        if endpoint:
+            url = f"{self.base_url.rstrip('/')}/{endpoint}"
         else:
-            params_with_key = params
+            url = self.base_url
+        
+        # Add service key if provided for the client and not already specified under other names
+        params_with_key = params.copy()
+        if self.service_key:
+            if not any(k in params_with_key for k in ["serviceKey", "ServiceKey", "apiKey"]):
+                params_with_key["serviceKey"] = self.service_key
+        else:
+            pass
 
         try:
             if method.upper() == "GET":
@@ -103,14 +104,8 @@ class DataGoKrClient(BaseAPIClient):
         # Override serviceKey parameter name if specified in extra_params
         # Public Data APIs often use 'serviceKey' but sometimes 'ServiceKey' (capital S)
         # This will be handled explicitly by the child clients, e.g., smartfarm_client
-        if "serviceKey" in params and params["serviceKey"] != self.service_key:
-            # If a custom serviceKey is passed, use it, otherwise use the default client one
-            pass 
-        elif "ServiceKey" in params and params["ServiceKey"] != self.service_key:
-             # Handle cases where ServiceKey (capital S) is used
-            pass
-        else:
-            # Ensure the service key from settings is used if not explicitly provided in params
+        # Ensure the service key from settings is used if not explicitly provided in params
+        if not any(k in params for k in ["serviceKey", "ServiceKey", "apiKey"]):
             params["serviceKey"] = self.service_key 
 
         return self._make_request(endpoint, params, api_name, is_json_response=is_json_response)
