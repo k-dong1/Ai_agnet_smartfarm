@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tomato SmartFarm Pest Risk AI Agent Report</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            /* Theme color tokens */
+            --bg-dark: #0f172a;
+            --bg-card: rgba(30, 41, 59, 0.7);
+            --border-card: rgba(255, 255, 255, 0.08);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            
+            /* Status colors based on risk */
+            {% if risk_label == 0 %}
+            --accent-color: #10b981; /* Emerald Green */
+            --accent-glow: rgba(16, 185, 129, 0.35);
+            {% elif risk_label == 1 %}
+            --accent-color: #eab308; /* Yellow */
+            --accent-glow: rgba(234, 179, 8, 0.35);
+            {% elif risk_label == 2 %}
+            --accent-color: #f97316; /* Orange */
+            --accent-glow: rgba(249, 115, 22, 0.35);
+            {% else %}
+            --accent-color: #ef4444; /* Red */
+            --accent-glow: rgba(239, 68, 68, 0.35);
+            {% endif %}
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            line-height: 1.6;
+            padding: 2.5rem 1.5rem;
+            min-height: 100vh;
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(30, 41, 59, 0.5) 0%, transparent 50%),
+                radial-gradient(circle at 90% 80%, var(--accent-glow) 0%, transparent 60%);
+            background-attachment: fixed;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* Header Style */
+        header {
+            text-align: center;
+            margin-bottom: 3.5rem;
+        }
+
+        header h1 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 2.8rem;
+            font-weight: 800;
+            letter-spacing: -0.03em;
+            background: linear-gradient(135deg, #ffffff 40%, var(--accent-color));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+
+        header p {
+            color: var(--text-muted);
+            font-size: 1.1rem;
+            font-weight: 400;
+        }
+        
+        .generated-time {
+            display: inline-block;
+            margin-top: 0.75rem;
+            padding: 0.25rem 0.75rem;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px border var(--border-card);
+            border-radius: 9999px;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        /* Layout Grid */
+        .grid-layout {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        @media (min-width: 900px) {
+            .grid-layout {
+                grid-template-columns: 1.2fr 0.8fr;
+            }
+        }
+
+        /* Glassmorphism Card Style */
+        .card {
+            background: var(--bg-card);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--border-card);
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.35);
+        }
+
+        .card-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.4rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            padding-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* Key Metrics Banner */
+        .risk-banner {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            border: 2px solid var(--accent-color);
+            box-shadow: 0 0 25px var(--accent-glow);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .risk-badge {
+            font-family: 'Outfit', sans-serif;
+            font-size: 4rem;
+            font-weight: 900;
+            color: var(--accent-color);
+            text-shadow: 0 0 20px var(--accent-glow);
+            line-height: 1.1;
+            margin: 1rem 0;
+            letter-spacing: -0.02em;
+        }
+
+        .risk-label-sub {
+            font-size: 1.1rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+        }
+
+        /* Sensors Grid */
+        .sensors-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 1.25rem;
+        }
+
+        .sensor-tile {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            border-radius: 14px;
+            padding: 1.25rem;
+            text-align: center;
+            transition: background 0.2s ease;
+        }
+
+        .sensor-tile:hover {
+            background: rgba(255, 255, 255, 0.06);
+        }
+
+        .sensor-label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            font-weight: 600;
+            letter-spacing: 0.03em;
+        }
+
+        .sensor-value {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: #ffffff;
+        }
+
+        .sensor-unit {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            font-weight: 400;
+        }
+
+        /* Probabilities Progress */
+        .prob-container {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .prob-row {
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+        }
+
+        .prob-info {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.95rem;
+        }
+
+        .prob-name {
+            font-weight: 600;
+        }
+
+        .prob-val {
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        .prob-bar-bg {
+            background: rgba(255, 255, 255, 0.06);
+            height: 8px;
+            border-radius: 9999px;
+            overflow: hidden;
+        }
+
+        .prob-bar-fill {
+            height: 100%;
+            border-radius: 9999px;
+            transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Diagnostic Lists */
+        .text-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .text-list li {
+            position: relative;
+            padding-left: 1.75rem;
+            font-size: 0.95rem;
+            color: #e2e8f0;
+        }
+
+        .text-list li::before {
+            content: "•";
+            position: absolute;
+            left: 0.5rem;
+            top: 0;
+            color: var(--accent-color);
+            font-size: 1.5rem;
+            line-height: 1.1;
+        }
+
+        .action-list li::before {
+            content: "✓";
+            font-size: 1.1rem;
+            font-weight: bold;
+        }
+
+        /* LLM Box */
+        .llm-box {
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.4), rgba(15, 23, 42, 0.4));
+            border-left: 4px solid var(--accent-color);
+            padding: 1.5rem;
+            border-radius: 0 16px 16px 0;
+            font-size: 1rem;
+            color: #e2e8f0;
+            font-style: italic;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Agent Logs */
+        .log-terminal {
+            background: #090d16;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 1.25rem;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.85rem;
+            max-height: 250px;
+            overflow-y: auto;
+            color: #38bdf8;
+            box-shadow: inset 0 4px 10px rgba(0, 0, 0, 0.5);
+        }
+
+        .log-line {
+            margin-bottom: 0.5rem;
+            line-height: 1.4;
+        }
+
+        .log-line:last-child {
+            margin-bottom: 0;
+        }
+
+        /* Training Metrics Row */
+        .metrics-bar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+        }
+
+        .metric-item {
+            flex: 1 1 200px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.03);
+            border-radius: 12px;
+            padding: 1rem;
+            text-align: center;
+        }
+
+        .metric-lbl {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.25rem;
+        }
+
+        .metric-val {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #f1f5f9;
+        }
+
+        /* API Dataset Reference */
+        .dataset-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-top: 0.75rem;
+        }
+
+        .dataset-table th, .dataset-table td {
+            text-align: left;
+            padding: 0.5rem 0.75rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+        }
+
+        .dataset-table th {
+            font-weight: 600;
+            color: #e2e8f0;
+        }
+
+        /* Footer styling */
+        footer {
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            margin-top: 4rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.04);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- HEADER -->
+        <header>
+            <h1>Tomato SmartFarm Pest Risk Report</h1>
+            <p>토마토 스마트팜 병해충(잿빛곰팡이병/담배가루이) 위험도 분류 AI 에이전트 리포트</p>
+            <div style="display: flex; justify-content: center; gap: 0.75rem; flex-wrap: wrap; margin-top: 0.75rem;">
+                <div class="generated-time">분석 일시: {{ generated_at }}</div>
+                <div class="generated-time" style="background: rgba(99, 102, 241, 0.15); border-color: rgba(99, 102, 241, 0.3); color: #a5b4fc;">📍 기준 위치: {{ station_name }}</div>
+            </div>
+        </header>
+
+        <div class="grid-layout">
+            <!-- LEFT COLUMN: Main Analysis Results -->
+            <div style="display: flex; flex-direction: column; gap: 2rem;">
+                
+                <!-- Risk Decision & LLM Box -->
+                <div class="card" style="border-top: 4px solid var(--accent-color);">
+                    <div class="card-title">
+                        <span>🔍 AI Agent 종합 진단 정보</span>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+                        <div class="llm-box">
+                            "{{ llm_summary }}"
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Environmental Reasons -->
+                <div class="card">
+                    <div class="card-title">
+                        <span>⚠️ 식별된 위협 원인 분석 (Diagnostics)</span>
+                    </div>
+                    <ul class="text-list">
+                        {% for reason in reasons %}
+                        <li>{{ reason }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+
+                <!-- Actions Recommender -->
+                <div class="card">
+                    <div class="card-title">
+                        <span>🛡️ 에이전트 권장 대응 행동 (Recommendations)</span>
+                    </div>
+                    <ul class="text-list action-list">
+                        {% for action in actions %}
+                        <li>{{ action }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+
+                {% if trend_chart_path %}
+                <!-- Sensor Readings Trend Chart -->
+                <div class="card" style="text-align: center;">
+                    <div class="card-title">
+                        <span>📉 최근 20건 센서 트렌드 추이</span>
+                    </div>
+                    <img src="{{ trend_chart_path }}" alt="Sensor Trend Chart" style="max-width: 100%; border-radius: 12px; margin-top: 0.5rem; filter: drop-shadow(0 4px 12px rgba(0,0,0,0.35));">
+                </div>
+                {% endif %}
+
+                <!-- NCPMS Pest Dictionary (도감 정보) -->
+                <div class="card">
+                    <div class="card-title">
+                        <span>📖 NCPMS 국가 병해충 도감 정보</span>
+                    </div>
+                    
+                    <!-- 잿빛곰팡이병 정보 -->
+                    <div style="margin-bottom: 2rem; padding-bottom: 1.5rem; border-bottom: 1px solid rgba(255, 255, 255, 0.05);">
+                        <h4 style="color: #f97316; font-size: 1.1rem; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem; font-family: 'Outfit', sans-serif;">
+                            🍂 잿빛곰팡이병 (Botrytis cinerea)
+                        </h4>
+                        {% if gray_mold_detail.images %}
+                        <div style="display: flex; gap: 1rem; overflow-x: auto; padding: 0.5rem 0; margin-bottom: 1rem; scrollbar-width: thin;">
+                            {% for img in gray_mold_detail.images %}
+                            <div style="flex: 0 0 160px; text-align: center;">
+                                <img src="{{ img.url }}" alt="{{ img.title }}" style="width: 160px; height: 120px; object-fit: cover; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.1); transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                                <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: center; padding: 0 2px;" title="{{ img.title }}">
+                                    {{ img.title }}
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        <div style="font-size: 0.85rem; color: var(--text-muted); display: flex; flex-direction: column; gap: 0.6rem;">
+                            {% if gray_mold_detail.symptoms %}
+                            <div style="line-height: 1.5;"><strong style="color: #e2e8f0;">[피해 증상]</strong> {{ gray_mold_detail.symptoms }}</div>
+                            {% endif %}
+                            {% if gray_mold_detail.development_env %}
+                            <div style="line-height: 1.5;"><strong style="color: #e2e8f0;">[발생 환경]</strong> {{ gray_mold_detail.development_env }}</div>
+                            {% endif %}
+                            {% if gray_mold_detail.prevent_method %}
+                            <div style="line-height: 1.5;"><strong style="color: #e2e8f0;">[생태적 방제 방법]</strong> {{ gray_mold_detail.prevent_method }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <!-- 담배가루이 정보 -->
+                    <div>
+                        <h4 style="color: #eab308; font-size: 1.1rem; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem; font-family: 'Outfit', sans-serif;">
+                            🪰 담배가루이 (Bemisia tabaci)
+                        </h4>
+                        {% if whitefly_detail.images %}
+                        <div style="display: flex; gap: 1rem; overflow-x: auto; padding: 0.5rem 0; margin-bottom: 1rem; scrollbar-width: thin;">
+                            {% for img in whitefly_detail.images %}
+                            <div style="flex: 0 0 160px; text-align: center;">
+                                <img src="{{ img.url }}" alt="{{ img.title }}" style="width: 160px; height: 120px; object-fit: cover; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.1); transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                                <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: center; padding: 0 2px;" title="{{ img.title }}">
+                                    {{ img.title }}
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        <div style="font-size: 0.85rem; color: var(--text-muted); display: flex; flex-direction: column; gap: 0.6rem;">
+                            {% if whitefly_detail.morphology %}
+                            <div style="line-height: 1.5;"><strong style="color: #e2e8f0;">[형태 정보]</strong> {{ whitefly_detail.morphology }}</div>
+                            {% endif %}
+                            {% if whitefly_detail.ecology %}
+                            <div style="line-height: 1.5;"><strong style="color: #e2e8f0;">[생태 정보]</strong> {{ whitefly_detail.ecology }}</div>
+                            {% endif %}
+                            {% if whitefly_detail.prevent_method %}
+                            <div style="line-height: 1.5;"><strong style="color: #e2e8f0;">[방제 방법]</strong> {{ whitefly_detail.prevent_method }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Agent Processing Logs -->
+                <div class="card">
+                    <div class="card-title">
+                        <span>💻 에이전트 작업 처리 로그 (Agent Steps)</span>
+                    </div>
+                    <div class="log-terminal">
+                        {% for log in logs %}
+                        <div class="log-line">{{ log }}</div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- RIGHT COLUMN: MLP Predictor & Metrics -->
+            <div style="display: flex; flex-direction: column; gap: 2rem;">
+                
+                <!-- Risk Level Neon Banner -->
+                <div class="card risk-banner">
+                    <div class="risk-label-sub">MLP Classifier Risk Level</div>
+                    <div class="risk-badge">{{ risk_level }}</div>
+                    <div class="risk-label-sub">위험 등급 (Label {{ risk_label }})</div>
+                </div>
+
+                <!-- Latest Sensor Readings -->
+                <div class="card">
+                    <div class="card-title">
+                        <span>📊 수집된 최신 환경 센서값</span>
+                    </div>
+                    <div class="sensors-grid">
+                        <div class="sensor-tile">
+                            <div class="sensor-label">온도</div>
+                            <div class="sensor-value">
+                                {{ "%.1f" | format(sensor_data.temperature) }}<span class="sensor-unit">℃</span>
+                            </div>
+                        </div>
+                        <div class="sensor-tile">
+                            <div class="sensor-label">습도</div>
+                            <div class="sensor-value">
+                                {{ "%.1f" | format(sensor_data.humidity) }}<span class="sensor-unit">%</span>
+                            </div>
+                        </div>
+                        <div class="sensor-tile">
+                            <div class="sensor-label">이산화탄소</div>
+                            <div class="sensor-value">
+                                {{ "%.0f" | format(sensor_data.co2) }}<span class="sensor-unit">ppm</span>
+                            </div>
+                        </div>
+                        <div class="sensor-tile">
+                            <div class="sensor-label">광량</div>
+                            <div class="sensor-value">
+                                {{ "%.0f" | format(sensor_data.light) }}<span class="sensor-unit">Lux</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="sensors-grid" style="margin-top: 1rem;">
+                        <div class="sensor-tile">
+                            <div class="sensor-label">고습 지속</div>
+                            <div class="sensor-value">
+                                {{ sensor_data.humidity_duration }}<span class="sensor-unit">회</span>
+                            </div>
+                        </div>
+                        <div class="sensor-tile">
+                            <div class="sensor-label">온도 변화량</div>
+                            <div class="sensor-value">
+                                {{ "%+.1f" | format(sensor_data.temp_change) }}<span class="sensor-unit">℃</span>
+                            </div>
+                        </div>
+                        <div class="sensor-tile">
+                            <div class="sensor-label">습도 변화량</div>
+                            <div class="sensor-value">
+                                {{ "%+.1f" | format(sensor_data.humidity_change) }}<span class="sensor-unit">%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+
+
+                <!-- Class Probabilities Chart -->
+                <div class="card">
+                    <div class="card-title">
+                        <span>📈 등급별 예측 분류 확률 (Softmax)</span>
+                    </div>
+                    <div class="prob-container">
+                        {% for lvl, prob in risk_probability.items() %}
+                        <div class="prob-row">
+                            <div class="prob-info">
+                                <span class="prob-name">{{ lvl }}</span>
+                                <span class="prob-val">{{ "%.2f" | format(prob * 100) }}%</span>
+                            </div>
+                            <div class="prob-bar-bg">
+                                {% if lvl == "정상" %}
+                                    {% set bar_color = "#10b981" %}
+                                {% elif lvl == "주의" %}
+                                    {% set bar_color = "#eab308" %}
+                                {% elif lvl == "경고" %}
+                                    {% set bar_color = "#f97316" %}
+                                {% else %}
+                                    {% set bar_color = "#ef4444" %}
+                                {% endif %}
+                                <div class="prob-bar-fill" style="width: {{ prob * 100 }}%; background-color: {{ bar_color }};"></div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                
+                {% if importance_chart_path %}
+                <!-- MLP Feature Importance (XAI) -->
+                <div class="card" style="text-align: center;">
+                    <div class="card-title">
+                        <span>📊 전역 모델 피처 기여도 (Global XAI)</span>
+                    </div>
+                    <img src="{{ importance_chart_path }}" alt="Feature Importance Chart" style="max-width: 100%; border-radius: 12px; margin-top: 0.5rem; filter: drop-shadow(0 4px 12px rgba(0,0,0,0.35));">
+                </div>
+                {% endif %}
+
+                {% if local_importance_chart_path %}
+                <!-- Real-time Decision Attribution (Local XAI) -->
+                <div class="card" style="text-align: center;">
+                    <div class="card-title">
+                        <span>🔍 실시간 예측 의사결정 기여도 (Local XAI)</span>
+                    </div>
+                    <img src="{{ local_importance_chart_path }}" alt="Local Feature Importance Chart" style="max-width: 100%; border-radius: 12px; margin-top: 0.5rem; filter: drop-shadow(0 4px 12px rgba(0,0,0,0.35));">
+                </div>
+                {% endif %}
+
+                <!-- MLP Training Performance Metrics -->
+                <div class="card">
+                    <div class="card-title">
+                        <span>⚙️ MLP 모델 학습 지표</span>
+                    </div>
+                    <div class="metrics-bar">
+                        <div class="metric-item">
+                            <div class="metric-lbl">검증 정확도</div>
+                            <div class="metric-val">{{ "%.2f" | format(metrics.test_accuracy * 100) }}%</div>
+                        </div>
+                        <div class="metric-item">
+                            <div class="metric-lbl">최종 손실값</div>
+                            <div class="metric-val">{{ "%.4f" | format(metrics.final_train_loss) }}</div>
+                        </div>
+                    </div>
+                    <div class="metrics-bar" style="margin-top: 1rem;">
+                        <div class="metric-item">
+                            <div class="metric-lbl">총 학습 데이터 수</div>
+                            <div class="metric-val">{{ metrics.num_samples }}건</div>
+                        </div>
+                        <div class="metric-item">
+                            <div class="metric-lbl">학습 Epoch 수</div>
+                            <div class="metric-val">{{ metrics.epochs }}회</div>
+                        </div>
+                    </div>
+                </div>
+
+                {% if loss_chart_path %}
+                <!-- MLP Training Loss Curve -->
+                <div class="card" style="text-align: center;">
+                    <div class="card-title">
+                        <span>📉 MLP 모델 학습 손실 곡선 (Loss Curve)</span>
+                    </div>
+                    <img src="{{ loss_chart_path }}" alt="Loss Curve Chart" style="max-width: 100%; border-radius: 12px; margin-top: 0.5rem; filter: drop-shadow(0 4px 12px rgba(0,0,0,0.35));">
+                </div>
+                {% endif %}
+
+                <!-- Used Datasets Reference -->
+                <div class="card">
+                    <div class="card-title">
+                        <span>ℹ️ 수집 공공데이터 출처</span>
+                    </div>
+                    <table class="dataset-table">
+                        <thead>
+                            <tr>
+                                <th>수집 대상 데이터</th>
+                                <th>제공 기관</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>스마트팜 환경 데이터</td>
+                                <td>스마트팜코리아 (REST API)</td>
+                            </tr>
+                            <tr>
+                                <td>토마토 병해충 검색 정보</td>
+                                <td>농촌진흥청 NCPMS (XML)</td>
+                            </tr>
+                            <tr>
+                                <td>농업기상 기본 관측데이터 (V3)</td>
+                                <td>국립농업과학원 (XML)</td>
+                            </tr>
+                            <tr>
+                                <td>농업기상 상세 관측데이터 (V4)</td>
+                                <td>국립농업과학원 (XML)</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- FOOTER -->
+        <footer>
+            <p>© 2026 Tomato SmartFarm Pest Risk AI Agent Project. Powered by PyTorch & Local LLM.</p>
+        </footer>
+    </div>
+</body>
+</html>

@@ -1,10 +1,23 @@
 import requests
 import json
 import xml.etree.ElementTree as ET
+import re
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, Any, Union
 from config.settings import REQUEST_TIMEOUT, RAW_DATA_DIR
+
+def mask_service_key(text: str) -> str:
+    if not text:
+        return text
+    # 1. Query parameter masking (e.g. serviceKey=..., apiKey=...)
+    pattern_query = r"([sS]erviceKey|[aA]piKey)=[^&'\"\s\)]+"
+    text = re.sub(pattern_query, r"\1=***", text)
+    
+    # 2. REST Path parameter masking (e.g. getEnvInfoDataList/service_key/...)
+    pattern_path = r"(getEnvInfoDataList)/[^/]+"
+    text = re.sub(pattern_path, r"\1/***", text)
+    return text
 
 class BaseAPIClient:
     """
@@ -34,17 +47,18 @@ class BaseAPIClient:
         Makes an HTTP request to the API endpoint.
         Automatically handles service key injection and raw response saving.
         """
-        url = f"{self.base_url}/{endpoint}"
-        
-        # Add service key if provided for the client
-        if self.service_key:
-            params_with_key = params.copy()
-            # Note: Public Data APIs can have varying service key parameter names (serviceKey, ServiceKey, etc.)
-            # This needs to be handled in the inheriting client classes or specified by the API itself.
-            # For data.go.kr, 'serviceKey' is common, but will be overridden if a specific client sets it.
-            params_with_key.setdefault("serviceKey", self.service_key) 
+        if endpoint:
+            url = f"{self.base_url.rstrip('/')}/{endpoint}"
         else:
-            params_with_key = params
+            url = self.base_url
+        
+        # Add service key if provided for the client and not already specified under other names
+        params_with_key = params.copy()
+        if self.service_key:
+            if not any(k in params_with_key for k in ["serviceKey", "ServiceKey", "apiKey"]):
+                params_with_key["serviceKey"] = self.service_key
+        else:
+            pass
 
         try:
             if method.upper() == "GET":
@@ -64,18 +78,25 @@ class BaseAPIClient:
             else:
                 return response_content # Return raw text for XML parsing in specific client
 
-        except requests.exceptions.Timeout:
-            print(f"API Request to {url} timed out after {self.timeout} seconds.")
-            raise
+        except requests.exceptions.Timeout as e:
+            masked_url = mask_service_key(url)
+            print(f"API Request to {masked_url} timed out after {self.timeout} seconds.")
+            raise RuntimeError(f"API Request timed out: {mask_service_key(str(e))}") from None
         except requests.exceptions.HTTPError as e:
-            print(f"HTTP Error for {url}: {e.response.status_code} - {e.response.text}")
-            raise
+            masked_url = mask_service_key(url)
+            masked_err_msg = mask_service_key(str(e))
+            masked_response_text = mask_service_key(e.response.text) if e.response is not None else ""
+            print(f"HTTP Error for {masked_url}: {e.response.status_code if e.response is not None else 'Unknown'} - {masked_response_text}")
+            raise RuntimeError(f"HTTP Error: {masked_err_msg}") from None
         except requests.exceptions.RequestException as e:
-            print(f"An error occurred during the request to {url}: {e}")
-            raise
-        except json.JSONDecodeError:
-            print(f"Failed to decode JSON from response for {url}. Raw content: {response_content[:500]}...")
-            raise
+            masked_url = mask_service_key(url)
+            masked_err_msg = mask_service_key(str(e))
+            print(f"An error occurred during the request to {masked_url}: {masked_err_msg}")
+            raise RuntimeError(f"Request Exception: {masked_err_msg}") from None
+        except json.JSONDecodeError as e:
+            masked_url = mask_service_key(url)
+            print(f"Failed to decode JSON from response for {masked_url}. Raw content: {mask_service_key(response_content[:500])}...")
+            raise RuntimeError(f"JSON Decode Error for {masked_url}: {str(e)}") from None
         
 class DataGoKrClient(BaseAPIClient):
     """
@@ -103,14 +124,8 @@ class DataGoKrClient(BaseAPIClient):
         # Override serviceKey parameter name if specified in extra_params
         # Public Data APIs often use 'serviceKey' but sometimes 'ServiceKey' (capital S)
         # This will be handled explicitly by the child clients, e.g., smartfarm_client
-        if "serviceKey" in params and params["serviceKey"] != self.service_key:
-            # If a custom serviceKey is passed, use it, otherwise use the default client one
-            pass 
-        elif "ServiceKey" in params and params["ServiceKey"] != self.service_key:
-             # Handle cases where ServiceKey (capital S) is used
-            pass
-        else:
-            # Ensure the service key from settings is used if not explicitly provided in params
+        # Ensure the service key from settings is used if not explicitly provided in params
+        if not any(k in params for k in ["serviceKey", "ServiceKey", "apiKey"]):
             params["serviceKey"] = self.service_key 
 
         return self._make_request(endpoint, params, api_name, is_json_response=is_json_response)
