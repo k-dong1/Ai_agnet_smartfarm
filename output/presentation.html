@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tomato SmartFarm Pest Risk AI Agent - Presentation</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #070a13;
+            --bg-card: rgba(17, 25, 44, 0.85);
+            --border-card: rgba(255, 255, 255, 0.08);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent-cyan: #06b6d4;
+            --accent-purple: #8b5cf6;
+            --accent-green: #10b981;
+            --accent-orange: #f97316;
+            --accent-pink: #ec4899;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            font-family: 'Inter', -apple-system, sans-serif;
+            min-height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.1) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(6, 182, 212, 0.1) 0%, transparent 45%);
+        }
+
+        /* Presentation Container */
+        .presentation-container {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            position: relative;
+        }
+
+        /* Slide Container */
+        .slide {
+            display: none;
+            width: 100%;
+            max-width: 1200px;
+            height: 650px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-card);
+            border-radius: 20px;
+            padding: 3rem;
+            backdrop-filter: blur(12px);
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.6);
+            position: relative;
+            animation: fadeIn 0.4s ease-out forwards;
+        }
+
+        .slide.active {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.98) translateY(10px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        /* Header Style */
+        .slide-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            padding-bottom: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .slide-header h2 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 2.2rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #ffffff, var(--accent-cyan));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .slide-header .slide-number {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1rem;
+            color: var(--text-muted);
+            background: rgba(255, 255, 255, 0.04);
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        /* Slide Content area */
+        .slide-body {
+            flex: 1;
+            display: flex;
+            gap: 2rem;
+            align-items: stretch;
+            overflow: hidden;
+            margin-bottom: 1rem;
+        }
+
+        /* Utility grid columns */
+        .col-left {
+            flex: 1.2;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            overflow-y: auto;
+            padding-right: 0.75rem;
+            scrollbar-width: thin;
+        }
+
+        .col-right {
+            flex: 0.8;
+            background: rgba(0,0,0,0.25);
+            border-radius: 12px;
+            padding: 1.5rem;
+            border: 1px solid rgba(255,255,255,0.03);
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            overflow-y: auto;
+            scrollbar-width: thin;
+        }
+
+        /* Outline description card block */
+        .desc-box {
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 1rem;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.015);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+        }
+
+        .desc-box strong {
+            color: var(--accent-cyan);
+            font-size: 0.9rem;
+            display: block;
+            margin-bottom: 0.35rem;
+        }
+
+        .desc-box p {
+            font-size: 0.82rem;
+            color: var(--text-muted);
+            line-height: 1.45;
+        }
+
+        /* Styled Block Items (Header + Box structure) */
+        .list-title {
+            color: var(--text-main);
+            font-weight: 700;
+            font-size: 1.05rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        .list-title::before {
+            content: "✦";
+            color: var(--accent-cyan);
+            font-weight: bold;
+        }
+
+        .inline-desc-box {
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.015);
+            margin-top: 0.25rem;
+            margin-bottom: 0.75rem;
+            font-size: 0.9rem;
+            color: #cbd5e1;
+            line-height: 1.5;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02);
+        }
+
+        /* Formula element */
+        .math-box {
+            font-family: 'Fira Code', monospace;
+            background: rgba(139, 92, 246, 0.08);
+            border: 1px solid rgba(139, 92, 246, 0.2);
+            color: #c084fc;
+            padding: 0.5rem 0.75rem;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            display: inline-block;
+            margin: 0.25rem 0;
+        }
+
+        /* Highlight box */
+        .highlight-box {
+            background: rgba(6, 182, 212, 0.06);
+            border-left: 4px solid var(--accent-cyan);
+            padding: 1rem;
+            border-radius: 0 8px 8px 0;
+            font-size: 0.95rem;
+            line-height: 1.5;
+            color: #94a3b8;
+        }
+
+        .highlight-box strong {
+            color: var(--text-main);
+        }
+
+        /* Diagram / Flow Chart elements */
+        .flow-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(0, 0, 0, 0.25);
+            padding: 1.5rem 1rem;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.03);
+            margin-top: 1rem;
+        }
+
+        .flow-node {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 0.75rem;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 0.85rem;
+            min-width: 130px;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+
+        .flow-node.active {
+            border-color: var(--accent-cyan);
+            background: rgba(6, 182, 212, 0.08);
+            color: #fff;
+            box-shadow: 0 0 15px rgba(6, 182, 212, 0.2);
+        }
+
+        .flow-arrow {
+            color: var(--text-muted);
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+
+        /* Code block styles */
+        pre.code-block {
+            background: #080c14;
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            font-family: 'Fira Code', monospace;
+            font-size: 0.8rem;
+            overflow-x: auto;
+            color: #38bdf8;
+            max-height: 250px;
+            scrollbar-width: thin;
+        }
+
+        .code-block .keyword { color: #f43f5e; }
+        .code-block .comment { color: #64748b; }
+        .code-block .string { color: #10b981; }
+        .code-block .number { color: #f59e0b; }
+
+        /* Controller */
+        .controls-container {
+            height: 70px;
+            background: #090d16;
+            border-top: 1px solid var(--border-card);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 4rem;
+        }
+
+        .btn-nav {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            color: var(--text-main);
+            padding: 0.5rem 1.25rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        .btn-nav:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: var(--accent-cyan);
+        }
+
+        .btn-nav:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        /* Slide specific styling */
+        .title-slide {
+            justify-content: center !important;
+            align-items: center;
+            text-align: center;
+            gap: 2rem;
+        }
+
+        .title-slide h1 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 3.5rem;
+            font-weight: 900;
+            letter-spacing: -0.04em;
+            background: linear-gradient(135deg, #ffffff 40%, var(--accent-cyan) 70%, var(--accent-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+
+        .title-slide h3 {
+            color: var(--accent-purple);
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.4rem;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+
+        .title-slide .badge-group {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .badge {
+            font-size: 0.85rem;
+            padding: 0.35rem 0.85rem;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 9999px;
+            color: var(--text-muted);
+        }
+
+        .badge-cyan { border-color: var(--accent-cyan); color: var(--accent-cyan); }
+        .badge-purple { border-color: var(--accent-purple); color: var(--accent-purple); }
+
+        .tech-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.75rem;
+            text-align: center;
+        }
+
+        .tech-card {
+            background: rgba(255,255,255,0.02);
+            border: 1px solid rgba(255,255,255,0.04);
+            border-radius: 8px;
+            padding: 0.75rem;
+        }
+
+        .tech-title {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-bottom: 0.25rem;
+        }
+
+        .tech-val {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="presentation-container">
+
+        <!-- SLIDE 1: Title -->
+        <div class="slide title-slide active" id="slide-1">
+            <h3>Term Project Prototype</h3>
+            <h1>Tomato SmartFarm Pest Risk AI Agent</h1>
+            <p style="color: var(--text-muted); font-size: 1.15rem; max-width: 800px;">
+                공공데이터 환경/기상 API 연동 및 Weighted MLP 신경망을 통한<br>
+                토마토 병해충(잿빛곰팡이병/담배가루이) 위험도 예측 및 실시간 설명 가능 AI(XAI) 분석 시스템
+            </p>
+            <div class="badge-group">
+                <span class="badge badge-cyan">PyTorch MLP Classifier</span>
+                <span class="badge">Stratified 5-Fold CV</span>
+                <span class="badge badge-purple">Gradient-based XAI (Input * Grad)</span>
+                <span class="badge">Ollama Llama3 요약</span>
+            </div>
+            
+            <div style="margin-top: 2rem; border: 1px solid rgba(255, 255, 255, 0.05); padding: 0.5rem 1.25rem; border-radius: 9999px; background: rgba(255, 255, 255, 0.02); display: inline-block;">
+                <span style="font-size: 0.85rem; color: var(--text-muted);">수업 과제물 발표 자료 (구동 및 설계 핵심 요약)</span>
+            </div>
+        </div>
+
+        <!-- SLIDE 2: Architecture & Data Flow -->
+        <div class="slide" id="slide-2">
+            <div class="slide-header">
+                <h2>01. 전체 시스템 아키텍처 및 데이터 흐름</h2>
+                <div class="slide-number">Slide 2 / 7</div>
+            </div>
+            <div class="slide-body">
+                <div class="col-left">
+                    <div class="list-title">수집 (Raw Data Extraction)</div>
+                    <div class="inline-desc-box">
+                        스마트팜 코리아 농가 API(JSON), 국립농업과학원 기상 V4 API(XML), 농촌진흥청 NCPMS 병해충 정보 API(XML)를 연동하여 실시간 데이터베이스를 구축합니다.
+                    </div>
+
+                    <div class="list-title">전처리 & 피처 엔지니어링</div>
+                    <div class="inline-desc-box">
+                        수집된 시계열 기상 데이터를 병합하고 연속 고습 지속 조건(humidity_duration) 및 최근 온습도 1시간 차이 변동량 피처를 동적 생성합니다.
+                    </div>
+
+                    <div class="list-title">신경망 모델링 (Weighted MLP)</div>
+                    <div class="inline-desc-box">
+                        규칙 기반으로 생성한 학습용 리스크 등급 라벨(0~3)을 바탕으로 PyTorch MLP 모델을 학습 및 예측합니다.
+                    </div>
+
+                    <div class="list-title">에이전트 조치 & 요약</div>
+                    <div class="inline-desc-box">
+                        예측된 결과 확률과 위협 인자를 에이전트가 상세 분석하고, Ollama 로컬 LLM을 연동해 농가 배습 환기 조치 요약을 생성하여 정적 HTML 대시보드 리포트를 갱신합니다.
+                    </div>
+                </div>
+                <div class="col-right">
+                    <div style="text-align: center; color: var(--accent-cyan); font-weight: 600; margin-bottom: 0.5rem; font-size: 0.95rem;">
+                        [ 설계도: End-to-End 데이터 파이프라인 ]
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 0.5rem; font-size: 0.85rem;">
+                        <div class="flow-node active">공공데이터 포털 API 호출</div>
+                        <div style="text-align: center; color: var(--text-muted); font-size: 0.9rem;">↓ (JSON / XML 원본 raw 저장)</div>
+                        <div class="flow-node active">feature_engineering.py (피처화)</div>
+                        <div style="text-align: center; color: var(--text-muted); font-size: 0.9rem;">↓ (고습지속, 온습도 변화량 피처 추출)</div>
+                        <div class="flow-node active">PyTorch MLP 학습 & XAI 계산</div>
+                        <div style="text-align: center; color: var(--text-muted); font-size: 0.9rem;">↓ (에이전트 진단 및 Ollama 연동)</div>
+                        <div class="flow-node active">output/report.html (정적 대시보드)</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 3: Robust Collection & Location Filtering -->
+        <div class="slide" id="slide-3">
+            <div class="slide-header">
+                <h2>02. 위치 기반 필터링 및 데이터 무결성 설계</h2>
+                <div class="slide-number">Slide 3 / 7</div>
+            </div>
+            <div class="slide-body">
+                <div class="col-left">
+                    <div class="list-title">더미데이터 전면 금지</div>
+                    <div class="inline-desc-box">
+                        무작위 가짜 난수 생성을 배제하고, 공공데이터 포털의 30일치 실제 농업기상 상세 기상(V4) 시계열 데이터를 긁어와 학습을 진행합니다.
+                    </div>
+
+                    <div class="list-title">기준 지점 설정 및 필터링</div>
+                    <div class="inline-desc-box">
+                        환경변수(.env)에 설정된 TARGET_STATION_CODE=477802A001 (가평군 가평읍)을 타겟으로 하여, 전국 기상 데이터 중에서 해당 지역의 실시간 날씨 데이터만 정밀하게 필터링하여 분석에 사용합니다.
+                    </div>
+
+                    <div class="list-title">폴백 스키마 설계 (강건성 확보)</div>
+                    <div class="inline-desc-box">
+                        공인 스마트팜 API가 지연 또는 미수집(0건) 시 프로그램이 중단되지 않고, 기상청 V4 미세 실시간 기상 관측 데이터의 온습도 변수를 스마트팜 피처 스키마로 자동 맵핑·변환하는 폴백 구조를 논리적으로 연동하여 구동 안정성을 극대화했습니다.
+                    </div>
+                </div>
+                <div class="col-right">
+                    <div class="highlight-box">
+                        <strong>💡 평가요소 핵심: 설계의 논리적 예외 복구</strong><br><br>
+                        외부 API 서버 점검 또는 네트워크 통신 에러가 나도 로컬 캐시와 기상청 V4 관측 데이터의 변환 결합 폴백을 통해 AI 모델 학습과 에이전트 리포트가 중단 없이 Exit Code 0으로 완벽 구동되도록 견고하게 설계되었습니다.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 4: Neural Network Design & Weighted Loss -->
+        <div class="slide" id="slide-4">
+            <div class="slide-header">
+                <h2>03. PyTorch MLP 설계 및 가중치 손실 함수</h2>
+                <div class="slide-number">Slide 4 / 7</div>
+            </div>
+            <div class="slide-body">
+                <div class="col-left">
+                    <pre class="code-block" style="font-size: 0.76rem; max-height: none; line-height: 1.35; padding: 0.85rem;">
+<span class="keyword">class</span> <span class="string">SmartFarmMLP</span>(nn.Module):
+    <span class="keyword">def</span> <span class="keyword">__init__</span>(
+        self, 
+        input_dim: int, 
+        hidden1: int = <span class="number">16</span>, 
+        hidden2: int = <span class="number">8</span>, 
+        output_dim: int = <span class="number">4</span>
+    ):
+        super().__init__()
+        self.network = nn.Sequential(
+            nn.Linear(input_dim, hidden1),
+            nn.ReLU(),
+            nn.Dropout(p=<span class="number">0.2</span>),
+            nn.Linear(hidden1, hidden2),
+            nn.ReLU(),
+            nn.Dropout(p=<span class="number">0.2</span>),
+            nn.Linear(hidden2, output_dim)
+        )
+    <span class="keyword">def</span> <span class="keyword">forward</span>(self, x):
+        <span class="keyword">return</span> self.network(x)</pre>
+                </div>
+                <div class="col-right">
+                    <div style="display: flex; flex-direction: column; gap: 0.8rem; font-size: 0.9rem;">
+                        <div>
+                            <span style="color: var(--accent-cyan); font-weight: bold;">✔ 활성화 함수 (ReLU)</span><br>
+                            <span class="math-box">f(x) = max(0, x)</span>
+                            <p style="font-size: 0.8rem; color: var(--text-muted);">오차역전파시 기울기 소실(Vanishing Gradient) 방지</p>
+                        </div>
+                        <div>
+                            <span style="color: var(--accent-cyan); font-weight: bold;">✔ 최적화 알고리즘 (Adam)</span><br>
+                            <span class="math-box">W_t1 = W_t - [η / (√v_t + ε)] · m_t</span>
+                            <p style="font-size: 0.8rem; color: var(--text-muted);">Momentum(방향) + RMSprop(보폭) 융합, 개별 가중치별 동적 학습률 보정</p>
+                        </div>
+                        <div>
+                            <span style="color: var(--accent-cyan); font-weight: bold;">✔ 가중 손실함수 (Weighted CrossEntropy)</span><br>
+                            <span class="math-box">Loss = - ∑ (w_c · y_c · log(ŷ_c))</span>
+                            <p style="font-size: 0.8rem; color: var(--text-muted);">가중치 값: [정상:0.0, 주의:0.48, 경고:0.16, 심각:3.36]</p>
+                            <p style="font-size: 0.8rem; color: var(--text-muted);">소수파인 '심각' 라벨 오류에 높은 벌점(3.36)을 매겨 편향 극복</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 5: Validation & Gradient-based XAI -->
+        <div class="slide" id="slide-5">
+            <div class="slide-header">
+                <h2>04. K-Fold 검증 신뢰도 확보 및 실시간 XAI 설계</h2>
+                <div class="slide-number">Slide 5 / 7</div>
+            </div>
+            <div class="slide-body">
+                <div class="col-left">
+                    <div class="list-title">5-Fold 교차 검증 (Stratified Validation)</div>
+                    <div class="inline-desc-box">
+                        데이터를 고르게 5개 조각으로 쪼개어 검증하는 K-Fold 교차 검증을 수행합니다. 5회 순환 훈련 후 평균 정확도(76.67%)를 획득하여 신뢰성 있는 성능 지표를 도출합니다.
+                    </div>
+
+                    <div class="list-title">실시간 예측 원인 역추적 (Local XAI)</div>
+                    <div class="inline-desc-box">
+                        추론 시점에 타겟 출력 로짓에 대한 오차역전파 경사도(Gradient)를 구하고, 정규화된 입력 피처 크기와 곱하는 Input × Gradient 기여도 계산법을 적용해 현재 판단에 미친 실시간 기여도(%)를 도출합니다.
+                    </div>
+                </div>
+                <div class="col-right">
+                    <div style="display: flex; flex-direction: column; gap: 1rem; font-size: 0.9rem;">
+                        <div>
+                            <span style="color: var(--accent-cyan); font-weight: bold;">✔ K-Fold 폴드별 검증 정확도</span><br>
+                            <span class="math-box" style="background: rgba(16, 185, 129, 0.08); border-color: rgba(16, 185, 129, 0.2); color: #34d399;">F1:50% | F2:66.7% | F3:83.3% | F4:83.3% | F5:100%</span>
+                            <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;">검증 평균 정확도: 76.67% 확보</p>
+                        </div>
+                        <div>
+                            <span style="color: var(--accent-cyan); font-weight: bold;">✔ Local XAI 기여도 공식</span><br>
+                            <span class="math-box" style="background: rgba(6, 182, 212, 0.08); border-color: rgba(6, 182, 212, 0.2); color: #22d3ee;">Attribution_i(X) = | x_i · (∂S_c(X) / ∂x_i) |</span>
+                            <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;">입력 센서 스케일(x_i)과 순간 기울기(Gradient)의 곱을 취하여 절대적 영향력을 계산</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 6: Agent Decision & Ollama LLM Fallback -->
+        <div class="slide" id="slide-6">
+            <div class="slide-header">
+                <h2>05. 에이전트 의사결정 및 로컬 LLM 폴백 설계</h2>
+                <div class="slide-number">Slide 6 / 7</div>
+            </div>
+            <div class="slide-body">
+                <div class="col-left">
+                    <div class="list-title">하이브리드 원인 진단 (Diagnostics)</div>
+                    <div class="inline-desc-box">
+                        MLP 신경망의 분류 결과(정상/주의/경고/심각)와 환경 임계치 기준 규칙 기반 분석기(risk_analyzer.py)를 결합하여 정확한 위협 원인을 도출합니다.
+                    </div>
+
+                    <div class="list-title">대응 방안 권고 (Recommendations)</div>
+                    <div class="inline-desc-box">
+                        진단 수준 및 원인에 맞춰 환기팬 가동, 난방기 배습 가동, 소각 및 약제 방제 가이드 등의 실제 조치 조항을 에이전트가 자동 생성합니다.
+                    </div>
+
+                    <div class="list-title">Ollama 로컬 LLM 통합</div>
+                    <div class="inline-desc-box">
+                        로컬 환경에서 기동 중인 qwen2.5:3b 모델에 프롬프트를 넘겨 일반 농가 사용자가 이해하기 편한 자연어 브리핑 요약본을 요청합니다.
+                    </div>
+
+                    <div class="list-title">LLM 미기동 대비 Fallback 설계</div>
+                    <div class="inline-desc-box">
+                        외부 Ollama 서버 미기동 또는 초기 적재 90초 초과 타임아웃 발생 시, 시스템이 충돌 없이 안전하게 Fallback 텍스트로 보정되도록 예외 처리를 완료했습니다.
+                    </div>
+                </div>
+                <div class="col-right">
+                    <div class="tech-grid">
+                        <div class="tech-card">
+                            <div class="tech-title">Local LLM</div>
+                            <div class="tech-val" style="color: var(--accent-purple);">Qwen 2.5 3B</div>
+                        </div>
+                        <div class="tech-card">
+                            <div class="tech-title">Read Timeout</div>
+                            <div class="tech-val">90 sec</div>
+                        </div>
+                        <div class="tech-card">
+                            <div class="tech-title">Fallback</div>
+                            <div class="tech-val" style="color: var(--accent-green);">Safe Msg</div>
+                        </div>
+                    </div>
+                    
+                    <div class="desc-box" style="margin-top: 1.25rem;">
+                        <strong>📝 LLM 추론 제약 프롬프트 설계</strong>
+                        <p>
+                            프롬프트 설정 시 로컬 LLM이 MLP 에이전트의 위험도 진단 결과를 임의로 재해석하거나 변조하지 못하도록 보조 설명 역할로 엄격하게 가이드라인을 제한하여 설계했습니다.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 7: Summary & Demo Output Reference -->
+        <div class="slide" id="slide-7">
+            <div class="slide-header">
+                <h2>06. 파이프라인 구동 결과 및 데모 시연</h2>
+                <div class="slide-number">Slide 7 / 7</div>
+            </div>
+            <div class="slide-body">
+                <div class="col-left">
+                    <div class="list-title">실시간 대시보드 리포트 생성</div>
+                    <div class="inline-desc-box">
+                        학습 손실곡선, 최근 20건 센서 트렌드, XAI 기여도 분석 차트가 동적으로 생성되어 output/report.html에 바인딩됩니다.
+                    </div>
+
+                    <div class="list-title">농진청 NCPMS 도감 연동</div>
+                    <div class="inline-desc-box">
+                        병해충 상세조회 API를 통해 실제 농장주가 시각적으로 판단할 수 있는 잿빛곰팡이병/담배가루이의 공식 고화질 갤러리 이미지와 병해 방제법을 탑재했습니다.
+                    </div>
+
+                    <div class="list-title">실행 로그 확인</div>
+                    <div class="inline-desc-box">
+                        터미널 명령어 python main.py 단 한 번의 실행으로 데이터 수집, MLP 학습, 검증, 설명 생성, 대시보드 출력이 논스톱으로 완료됩니다.
+                    </div>
+                </div>
+                <div class="col-right" style="text-align: center; justify-content: center; gap: 1rem;">
+                    <span style="font-size: 3rem;">🖥️</span>
+                    
+                    <div class="desc-box" style="width: 100%; border-style: dashed; border-color: rgba(6, 182, 212, 0.2); background: rgba(6, 182, 212, 0.02); text-align: left;">
+                        <strong>🔍 실시간 생성 대시보드 시연</strong>
+                        <p>
+                            분석 결과물인 HTML 리포트 파일을 웹 브라우저에서 구동하여 실제 가평읍 지점의 실시간 날씨 데이터 분석 결과와 모델 지표를 검증해 보겠습니다.
+                        </p>
+                    </div>
+                    
+                    <a href="file:///C:/Users/kang4/Desktop/3-1/Ai_Practice/ai_agent/output/report.html" target="_blank" class="btn-nav" style="text-decoration: none; display: inline-block; width: 100%; margin: 0 auto; border-color: var(--accent-cyan);">
+                        Open report.html
+                    </a>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- CONTROLLER BAR -->
+    <div class="controls-container">
+        <button class="btn-nav" id="prev-btn" disabled>◀ 이전 슬라이드 (Prev)</button>
+        <span style="font-family: 'Outfit', sans-serif; font-size: 1.1rem; font-weight: 600; color: var(--text-muted);" id="slide-indicator">Slide 1 of 7</span>
+        <button class="btn-nav" id="next-btn">다음 슬라이드 (Next) ▶</button>
+    </div>
+
+    <script>
+        const totalSlides = 7;
+        let currentSlide = 1;
+
+        const prevBtn = document.getElementById('prev-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const indicator = document.getElementById('slide-indicator');
+
+        function updateSlide() {
+            // Hide all slides
+            for (let i = 1; i <= totalSlides; i++) {
+                document.getElementById(`slide-${i}`).classList.remove('active');
+            }
+            // Show active slide
+            document.getElementById(`slide-${currentSlide}`).classList.add('active');
+
+            // Update buttons & indicator
+            prevBtn.disabled = (currentSlide === 1);
+            nextBtn.disabled = (currentSlide === totalSlides);
+            indicator.innerText = `Slide ${currentSlide} of ${totalSlides}`;
+        }
+
+        // Event listeners
+        prevBtn.addEventListener('click', () => {
+            if (currentSlide > 1) {
+                currentSlide--;
+                updateSlide();
+            }
+        });
+
+        nextBtn.addEventListener('click', () => {
+            if (currentSlide < totalSlides) {
+                currentSlide++;
+                updateSlide();
+            }
+        });
+
+        // Key navigation
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft' && currentSlide > 1) {
+                currentSlide--;
+                updateSlide();
+            } else if (e.key === 'ArrowRight' && currentSlide < totalSlides) {
+                currentSlide++;
+                updateSlide();
+            }
+        });
+
+        // Initialize presentation
+        updateSlide();
+    </script>
+</body>
+</html>
