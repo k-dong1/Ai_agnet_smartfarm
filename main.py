@@ -15,6 +15,7 @@ if sys.stderr.encoding != 'utf-8':
 
 import pandas as pd
 from datetime import datetime, timedelta
+from src.api_clients.data_go_kr_client import mask_service_key
 from src.api_clients.smartfarm_client import SmartFarmClient
 from src.api_clients.pest_client import PestClient
 from src.api_clients.weather_client import WeatherClient
@@ -70,7 +71,8 @@ def main():
             )
             smartfarm_data_parsed = parse_smartfarm_data(smartfarm_data_raw)
         except Exception as sfe:
-            print(f"Warning: SmartFarm Korea API call failed or timed out ({sfe}). Proceeding with Weather data fallback.")
+            masked_sfe = mask_service_key(str(sfe))
+            print(f"Warning: SmartFarm Korea API call failed or timed out ({masked_sfe}). Proceeding with Weather data fallback.")
             smartfarm_data_parsed = []
             
         print(f"-> SmartFarm Korea: Fetched and parsed {len(smartfarm_data_parsed)} items.")
@@ -247,12 +249,15 @@ def main():
         print("======================================================================")
 
     except ValueError as ve:
-        print(f"Configuration Error: {ve}", file=sys.stderr)
+        masked_ve = mask_service_key(str(ve))
+        print(f"Configuration Error: {masked_ve}", file=sys.stderr)
         sys.exit(1)
     except Exception as e:
-        print(f"An unexpected error occurred: {e}", file=sys.stderr)
+        masked_err = mask_service_key(str(e))
+        print(f"An unexpected error occurred: {masked_err}", file=sys.stderr)
         import traceback
-        traceback.print_exc()
+        tb_str = traceback.format_exc()
+        print(mask_service_key(tb_str), file=sys.stderr)
         sys.exit(1)
 
 if __name__ == "__main__":
