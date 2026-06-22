@@ -6,7 +6,6 @@ models/*.pkl
 data/raw/*
 data/processed/*
 data/cache/*
-output/*
 .venv/*
 venv/*
 *.md
